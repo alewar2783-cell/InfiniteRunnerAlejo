@@ -4,71 +4,89 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager Instance { get; private set; }
 
-    [Header("Game Speed Settings")]
-    [Tooltip("Controls how fast the world moves towards the player.")]
-    public float globalWorldSpeed = 10f;
+    [Header("Game Speed & Difficulty Scaling")]
+    public float startingWorldSpeed = 10f;
+    [Tooltip("Maximum cap the speed can reach.")]
+    public float maxWorldSpeed = 35f;
+    [Tooltip("How much the world accelerates per every total score point.")]
+    public float speedMultiplierPerScore = 0.005f;
+    public float globalWorldSpeed { get; private set; }
 
-    [Header("Values")]
-    public int scoreBilletes = 0;
+    [Header("Score Settings")]
+    public int billsCollected = 0;
+    public float scorePerBill = 50f;
+    public float totalScore = 0f;
     public float timeSurvived = 0f;
 
     [Header("Health Settings")]
-    [Tooltip("Max capacity of health sections. Clamped internally.")]
     public int maxHealth = 10;
     private int currentHealth;
 
     [Header("Fuel Settings")]
-    [Tooltip("Max capacity of fuel sections. Clamped internally.")]
     public float maxFuel = 10f;
     private float currentFuel;
-    
-    [Tooltip("Base amount of fuel depleted per second.")]
     public float baseFuelDepletionRate = 0.5f;
-    [Tooltip("How much the fuel depletion dynamically accelerates per second survived.")]
-    public float fuelDepletionAcceleration = 0.015f;
+    public float maxFuelDepletionRate = 2.5f;
+    [Tooltip("How much fuel depletion accelerates per score point.")]
+    public float fuelDepletionAcceleration = 0.0005f;
 
     private bool isGameOver = false;
 
     private void Awake()
     {
-        // Singleton pattern implementation to easily access GameManager from anywhere
-        if (Instance == null)
-        {
-            Instance = this;
-        }
-        else
-        {
-            Destroy(gameObject);
-        }
+        // Singleton pattern implementation
+        if (Instance == null) Instance = this;
+        else Destroy(gameObject);
     }
 
     private void Start()
     {
-        // Initialize health and fuel at the start of the game
+        // Initialize logic on restart/play
+        Time.timeScale = 1f; // Must ensure time is moving if we restart the game!
         currentHealth = maxHealth;
         currentFuel = maxFuel;
         isGameOver = false;
         timeSurvived = 0f;
+        billsCollected = 0;
+        globalWorldSpeed = startingWorldSpeed;
+        
+        // Push initial UI values to the screen immediately
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.UpdateHealthBar(currentHealth, maxHealth);
+            UIManager.Instance.UpdateFuelBar(currentFuel, maxFuel);
+            UIManager.Instance.UpdateScore(0f);
+        }
     }
 
     private void Update()
     {
-        // Stop updating values if the game is over
         if (isGameOver) return;
 
-        // Increase survival time
+        // 1. Base Timers & Score Math
         timeSurvived += Time.deltaTime;
+        // Dynamically compute score: standard endurance points + collectible points
+        totalScore = (timeSurvived * 10f) + (billsCollected * scorePerBill);
 
-        // Calculate the continuous fuel depletion rate (accelerating over time)
-        float currentDepletionRate = baseFuelDepletionRate + (timeSurvived * fuelDepletionAcceleration);
+        // 2. Difficulty Scaling calculations
+        globalWorldSpeed = startingWorldSpeed + (totalScore * speedMultiplierPerScore);
+        globalWorldSpeed = Mathf.Clamp(globalWorldSpeed, startingWorldSpeed, maxWorldSpeed);
+
+        float currentDepletionRate = baseFuelDepletionRate + (totalScore * fuelDepletionAcceleration);
+        currentDepletionRate = Mathf.Clamp(currentDepletionRate, baseFuelDepletionRate, maxFuelDepletionRate);
         
-        // Continuously deplete fuel using Time.deltaTime
+        // 3. Apply Continuous Fuel Depletion
         currentFuel -= currentDepletionRate * Time.deltaTime;
-
-        // Clamp fuel between 0 and its max capacity (10)
         currentFuel = Mathf.Clamp(currentFuel, 0f, maxFuel);
 
-        // Check if fuel has run out
+        // 4. Update real-time UI components
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.UpdateScore(totalScore);
+            UIManager.Instance.UpdateFuelBar(currentFuel, maxFuel);
+        }
+
+        // 5. Game Over triggers
         if (currentFuel <= 0f)
         {
             currentFuel = 0f;
@@ -77,19 +95,27 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// Reduces the player's health by the specified amount and checks for Game Over.
+    /// Adds 1 to the multiplier score when a bill is picked up.
     /// </summary>
-    /// <param name="amount">Amount of damage to take.</param>
+    public void AddBill()
+    {
+        if (isGameOver) return;
+        billsCollected++;
+    }
+
     public void TakeDamage(int amount)
     {
         if (isGameOver) return;
-
+        
         currentHealth -= amount;
-
-        // Ensure health stays clamped between 0 and max
         currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
+        
+        // Update Health UI on impact
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.UpdateHealthBar(currentHealth, maxHealth);
+        }
 
-        // Check if health has depleted completely
         if (currentHealth <= 0)
         {
             currentHealth = 0;
@@ -97,39 +123,32 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Restores fuel by the specified amount sections/points.
-    /// </summary>
-    /// <param name="amount">Amount of fuel to restore.</param>
     public void RestoreFuel(int amount)
     {
         if (isGameOver) return;
-
+        
         currentFuel += amount;
-
-        // Ensure fuel never exceeds its max capacity
         currentFuel = Mathf.Clamp(currentFuel, 0f, maxFuel);
+        
+        // Force the visual UI update just to be perfectly snappy
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.UpdateFuelBar(currentFuel, maxFuel);
+        }
     }
 
-    /// <summary>
-    /// Adds collected currency to the score.
-    /// </summary>
-    /// <param name="amount">Amount of currency to add.</param>
-    public void AddBillete(int amount = 1)
-    {
-        if (isGameOver) return;
-        scoreBilletes += amount;
-    }
-
-    /// <summary>
-    /// Handles the end of the game when health or fuel reaches 0.
-    /// </summary>
     private void HandleGameOver()
     {
         isGameOver = true;
-        globalWorldSpeed = 0f; // Stop the world from moving
-        Debug.Log("Game Over! Time Survived: " + timeSurvived + "s, Score: " + scoreBilletes);
+        globalWorldSpeed = 0f; 
         
-        // TODO: Trigger Game Over UI events, stop player animations, format scores, etc.
+        // Freeze all physical time & physics using TimeScale
+        Time.timeScale = 0f;
+        
+        // Fire instructions over to the UI manager to pop the screen open
+        if (UIManager.Instance != null)
+        {
+            UIManager.Instance.ShowGameOverPanel();
+        }
     }
 }
