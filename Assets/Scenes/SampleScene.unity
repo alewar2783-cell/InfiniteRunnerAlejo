@@ -578,7 +578,8 @@ MonoBehaviour:
   timeSurvived: 0
   maxHealth: 10
   maxFuel: 10
-  fuelDepletionRate: 5
+  baseFuelDepletionRate: 0.5
+  fuelDepletionAcceleration: 0.015
 --- !u!4 &1410441951
 Transform:
   m_ObjectHideFlags: 0
@@ -625,6 +626,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ChunkSpawner
   chunkPrefabs:
   - {fileID: 7938697915060875276, guid: 229064cbf81167842b9805f68e8b68fc, type: 3}
+  - {fileID: 7938697915060875276, guid: 2b94d71ffdc37784e969cf7c2f06b0de, type: 3}
   chunkLength: 20
   chunksOnScreen: 6
   playerTransform: {fileID: 1886074861}
@@ -771,6 +773,10 @@ PrefabInstance:
     - target: {fileID: 956223658804854582, guid: 0ae7bc832ef405743b9528fb1b8e14a1, type: 3}
       propertyPath: m_Name
       value: PlayerCar
+      objectReference: {fileID: 0}
+    - target: {fileID: 956223658804854582, guid: 0ae7bc832ef405743b9528fb1b8e14a1, type: 3}
+      propertyPath: m_TagString
+      value: Player
       objectReference: {fileID: 0}
     - target: {fileID: 5915298067595051154, guid: 0ae7bc832ef405743b9528fb1b8e14a1, type: 3}
       propertyPath: m_LocalPosition.x

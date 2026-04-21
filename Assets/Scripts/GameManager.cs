@@ -13,21 +13,25 @@ public class GameManager : MonoBehaviour
     public float timeSurvived = 0f;
 
     [Header("Health Settings")]
+    [Tooltip("Max capacity of health sections. Clamped internally.")]
     public int maxHealth = 10;
     private int currentHealth;
 
     [Header("Fuel Settings")]
-    public int maxFuel = 10;
-    private int currentFuel;
-    [Tooltip("Time in seconds before losing 1 fuel section.")]
-    public float fuelDepletionRate = 5f;
-    private float fuelTimer = 0f;
+    [Tooltip("Max capacity of fuel sections. Clamped internally.")]
+    public float maxFuel = 10f;
+    private float currentFuel;
+    
+    [Tooltip("Base amount of fuel depleted per second.")]
+    public float baseFuelDepletionRate = 0.5f;
+    [Tooltip("How much the fuel depletion dynamically accelerates per second survived.")]
+    public float fuelDepletionAcceleration = 0.015f;
 
     private bool isGameOver = false;
 
     private void Awake()
     {
-        // Singleton pattern implementation
+        // Singleton pattern implementation to easily access GameManager from anywhere
         if (Instance == null)
         {
             Instance = this;
@@ -44,7 +48,6 @@ public class GameManager : MonoBehaviour
         currentHealth = maxHealth;
         currentFuel = maxFuel;
         isGameOver = false;
-        fuelTimer = 0f;
         timeSurvived = 0f;
     }
 
@@ -56,31 +59,35 @@ public class GameManager : MonoBehaviour
         // Increase survival time
         timeSurvived += Time.deltaTime;
 
-        // Handle fuel depletion over time
-        fuelTimer += Time.deltaTime;
-        if (fuelTimer >= fuelDepletionRate)
-        {
-            fuelTimer = 0f;
-            currentFuel--;
+        // Calculate the continuous fuel depletion rate (accelerating over time)
+        float currentDepletionRate = baseFuelDepletionRate + (timeSurvived * fuelDepletionAcceleration);
+        
+        // Continuously deplete fuel using Time.deltaTime
+        currentFuel -= currentDepletionRate * Time.deltaTime;
 
-            // Check if fuel has run out
-            if (currentFuel <= 0)
-            {
-                currentFuel = 0;
-                HandleGameOver();
-            }
+        // Clamp fuel between 0 and its max capacity (10)
+        currentFuel = Mathf.Clamp(currentFuel, 0f, maxFuel);
+
+        // Check if fuel has run out
+        if (currentFuel <= 0f)
+        {
+            currentFuel = 0f;
+            HandleGameOver();
         }
     }
 
     /// <summary>
-    /// Reduces the player's health by the specified amount.
+    /// Reduces the player's health by the specified amount and checks for Game Over.
     /// </summary>
     /// <param name="amount">Amount of damage to take.</param>
-    public void ReduceHealth(int amount = 1)
+    public void TakeDamage(int amount)
     {
         if (isGameOver) return;
 
         currentHealth -= amount;
+
+        // Ensure health stays clamped between 0 and max
+        currentHealth = Mathf.Clamp(currentHealth, 0, maxHealth);
 
         // Check if health has depleted completely
         if (currentHealth <= 0)
@@ -88,6 +95,20 @@ public class GameManager : MonoBehaviour
             currentHealth = 0;
             HandleGameOver();
         }
+    }
+
+    /// <summary>
+    /// Restores fuel by the specified amount sections/points.
+    /// </summary>
+    /// <param name="amount">Amount of fuel to restore.</param>
+    public void RestoreFuel(int amount)
+    {
+        if (isGameOver) return;
+
+        currentFuel += amount;
+
+        // Ensure fuel never exceeds its max capacity
+        currentFuel = Mathf.Clamp(currentFuel, 0f, maxFuel);
     }
 
     /// <summary>
@@ -109,6 +130,6 @@ public class GameManager : MonoBehaviour
         globalWorldSpeed = 0f; // Stop the world from moving
         Debug.Log("Game Over! Time Survived: " + timeSurvived + "s, Score: " + scoreBilletes);
         
-        // TODO: Show Game Over UI, Stop player logic, Show replay button, etc.
+        // TODO: Trigger Game Over UI events, stop player animations, format scores, etc.
     }
 }

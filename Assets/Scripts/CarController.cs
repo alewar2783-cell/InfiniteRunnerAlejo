@@ -109,7 +109,7 @@ public class CarController : MonoBehaviour
         // Safely call the GameManager Singleton to take damage
         if (GameManager.Instance != null)
         {
-            GameManager.Instance.ReduceHealth(1);
+            //GameManager.Instance.ReduceHealth(1);
             Debug.Log("Car hit damage border! 1 Health reduced.");
         }
         else
