@@ -12,7 +12,7 @@ GameObject:
   - component: {fileID: 6328869170700641415}
   - component: {fileID: 4672070182176259929}
   - component: {fileID: 4949036054798428764}
-  - component: {fileID: 7982234563172534077}
+  - component: {fileID: 1410011248473386137}
   - component: {fileID: 8151721491092828980}
   m_Layer: 0
   m_Name: Obstacle_Large
@@ -115,7 +115,7 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 1.7, y: 2.5, z: 4}
   m_Center: {x: 0, y: 0, z: 0}
---- !u!114 &7982234563172534077
+--- !u!114 &1410011248473386137
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -124,9 +124,9 @@ MonoBehaviour:
   m_GameObject: {fileID: 2914052661975513159}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c33389c51c885b147b161fb442b07953, type: 3}
+  m_Script: {fileID: 11500000, guid: 293d615ab3e2bb44eace0b1f8825bfa6, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Obstacle
+  m_EditorClassIdentifier: Assembly-CSharp::PhysicalObstacle
   damageAmount: 3
 --- !u!114 &8151721491092828980
 MonoBehaviour:
